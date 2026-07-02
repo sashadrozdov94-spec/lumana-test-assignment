@@ -349,7 +349,36 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SharedService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const redis_1 = __webpack_require__(/*! redis */ "redis");
 let SharedService = class SharedService {
+    async onModuleInit() {
+        this.client = (0, redis_1.createClient)({
+            url: 'redis://localhost:6379',
+        });
+        try {
+            await this.client.connect();
+        }
+        catch (error) {
+        }
+    }
+    async addTimeSeriesEntry(key, value) {
+        if (!this.client?.isOpen)
+            return;
+        try {
+            await this.client.sendCommand(['TS.ADD', key, '*', value.toString()]);
+        }
+        catch (error) {
+            if (error.message?.includes('ERR TSDB: key does not exist')) {
+                await this.client.sendCommand(['TS.CREATE', key]);
+                await this.client.sendCommand(['TS.ADD', key, '*', value.toString()]);
+            }
+        }
+    }
+    async onModuleDestroy() {
+        if (this.client?.isOpen) {
+            await this.client.disconnect();
+        }
+    }
 };
 exports.SharedService = SharedService;
 exports.SharedService = SharedService = __decorate([
@@ -426,6 +455,16 @@ module.exports = require("axios");
 (module) {
 
 module.exports = require("mongoose");
+
+/***/ },
+
+/***/ "redis"
+/*!************************!*\
+  !*** external "redis" ***!
+  \************************/
+(module) {
+
+module.exports = require("redis");
 
 /***/ },
 
