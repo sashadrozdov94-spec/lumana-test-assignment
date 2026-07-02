@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "@nestjs/microservices": "^11.1.27",
+    "@nestjs/mongoose": "^11.0.4",
+    "axios": "^1.18.1",
+    "mongoose": "^9.7.3",
+    "redis": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/multer": "^2.2.0"
+  }
+}

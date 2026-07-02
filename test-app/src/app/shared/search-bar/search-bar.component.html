@@ -1,0 +1,83 @@
+<div class="w-full max-w-2xl mx-auto px-4 mb-8">
+  <mat-form-field
+    appearance="outline"
+    subscriptSizing="dynamic"
+    floatLabel="always"
+    class="w-full
+           [&_.mdc-text-field--outlined]:!bg-white
+           [&_.mdc-text-field--outlined]:!rounded-3xl
+           [&_.mdc-text-field--outlined]:!shadow-md
+           [&_.mdc-text-field--outlined]:!border-none
+           [&_.mdc-notched-outline]:!hidden
+           [&_.mat-mdc-form-field-flex]:!items-center
+           [&_.mat-mdc-form-field-flex]:!h-14
+           [&_.mat-mdc-form-field-flex]:!px-4
+           focus-within:[&_.mdc-text-field--outlined]:!ring-2
+           focus-within:[&_.mdc-text-field--outlined]:!ring-blue-500
+           transition-all duration-200"
+  >
+    <mat-icon matPrefix class="!text-gray-400 !mr-2">search</mat-icon>
+    <mat-label class="!hidden">Search</mat-label>
+
+    <input
+      matInput
+      type="text"
+      placeholder="Find characters by name"
+      [formControl]="searchControl"
+      [matAutocomplete]="auto"
+      class="!text-gray-800 !font-medium placeholder:!text-gray-400 placeholder:!opacity-100"
+    >
+
+    @if (searchControl.value) {
+      <button mat-icon-button matSuffix (click)="clearSearch()" type="button" class="cursor-pointer">
+        <mat-icon class="!text-gray-400 !text-lg">close</mat-icon>
+      </button>
+    }
+
+    <mat-autocomplete
+        #auto="matAutocomplete"
+        [displayWith]="displayFn"
+        class="!bg-white !shadow-xl !rounded-2xl !border !border-gray-100 !mt-2">
+
+      @if (filteredOptions().history.length > 0) {
+        <mat-optgroup label="Recent Searches" class="!font-bold !text-gray-500 !text-xs !uppercase !tracking-wider">
+          @for (item of filteredOptions().history; track item.id) {
+            <mat-option
+
+              [value]="item.query"
+              (click)="selectHistory(item.query)"
+              class="!border-b !border-gray-50 last:!border-0 hover:!bg-gray-50 !px-4 !py-2 !h-10">
+              <div class="flex items-center mx-auto" >
+                <mat-icon class="!w-4 !h-4 !text-gray-400 !mr-2 !text-sm flex items-center justify-center">history</mat-icon>
+                <span class="text-gray-600 text-sm font-medium">{{ item.query }}</span>
+              </div>
+            </mat-option>
+          }
+        </mat-optgroup>
+      }
+
+      @if (filteredOptions().api.length > 0) {
+        <mat-optgroup label="Characters" class="!font-bold !text-gray-500 !text-xs !uppercase !tracking-wider">
+          @for (character of filteredOptions().api; track character.id) {
+            <mat-option
+              [value]="character"
+              class="!border-b !border-gray-50 last:!border-0 hover:!bg-blue-50 !px-4 !py-2">
+              <span class="text-gray-700 font-medium">{{ character.name }}</span>
+            </mat-option>
+          }
+        </mat-optgroup>
+      }
+
+      @if (searchControl.value && !isLoading() && filteredOptions().api.length === 0) {
+        <mat-option disabled class=" mx-auto !px-4 !py-3 !opacity-100">
+          <div class="flex flex-col items-center justify-center text-gray-400 py-2">
+            <mat-icon class="!w-8 !h-8 !text-gray-300 mb-1">search_off</mat-icon>
+            <span class="text-sm">No characters found for "{{ searchControl.value }}"</span>
+          </div>
+        </mat-option>
+      }
+
+    </mat-autocomplete>
+
+  </mat-form-field>
+</div>
