@@ -13,12 +13,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Injectable()
 export class CharacterEffects {
-  private actions$ = inject(Actions);
-  private store = inject(Store);
-  private apiService = inject(ApiService);
-  private destroyRef = inject(DestroyRef);
-
-  private responseCache = new Map<string, IPaginatedResponse>();
+  private readonly actions$ = inject(Actions);
+  private readonly store = inject(Store);
+  private readonly apiService = inject(ApiService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly responseCache = new Map<string, IPaginatedResponse>();
 
   loadCharacters$ = createEffect(() =>
     this.actions$.pipe(
@@ -28,10 +27,12 @@ export class CharacterEffects {
         this.store.select(CharacterSelectors.selectCurrentPage),
         this.store.select(CharacterSelectors.selectSearchQuery)
       ),
-      switchMap(([action, page, searchQuery]) => {
+      switchMap(([action, page, storeQuery]) => {
         const isSearchAction = action.type === CharacterActions.setSearch.type;
+        const currentQuery = isSearchAction ? (action as any).query : storeQuery;
         const apiPage = isSearchAction ? 1 : page;
-        const cacheKey = `search:${searchQuery.trim().toLowerCase()}-page:${apiPage}`;
+
+        const cacheKey = `search:${currentQuery.trim().toLowerCase()}-page:${apiPage}`;
 
         if (this.responseCache.has(cacheKey)) {
           const cachedResponse = this.responseCache.get(cacheKey);
@@ -40,17 +41,13 @@ export class CharacterEffects {
           }
         }
 
-        return this.apiService.getCharacters(apiPage, searchQuery, null).pipe(
+        return this.apiService.getCharacters(apiPage, currentQuery).pipe(
           tap(response => this.responseCache.set(cacheKey, response)),
           map(response => CharacterActions.loadCharactersSuccess({ response })),
           catchError(error => {
             if (error.status === 404) {
-               const emptyResponse: IPaginatedResponse = {
-                 info: { count: 0, pages: 0, next: null, prev: null },
-                 results: []
-               };
+               const emptyResponse: IPaginatedResponse = { total: 0, page: apiPage, limit: 20, totalPages: 0, data: [] };
                this.responseCache.set(cacheKey, emptyResponse);
-
                return of(CharacterActions.loadCharactersSuccess({ response: emptyResponse }));
             }
             return of(CharacterActions.loadCharactersFailure({ error }));
@@ -66,14 +63,10 @@ export class CharacterEffects {
       takeUntilDestroyed(this.destroyRef),
       concatLatestFrom(() => this.store.select(CharacterSelectors.selectSearchQuery)),
       tap(([action, query]) => {
-        const response = action.response;
-        let hasResults = false;
+        const response = action.response as IPaginatedResponse;
+        const hasResults = !!(response?.data?.length);
 
-        if (response && 'results' in response && Array.isArray(response.results)) {
-            hasResults = response.results.length > 0;
-        }
-
-        if (hasResults && query && query.trim().length > 0) {
+        if (hasResults && query?.trim()) {
           const item: ISearchHistory = {
             id: query.trim(),
             query: query.trim(),

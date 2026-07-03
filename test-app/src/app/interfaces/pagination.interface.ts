@@ -8,6 +8,9 @@ export interface IApiPageInfo {
 }
 
 export interface IPaginatedResponse {
-  info: IApiPageInfo;
-  results: ICharacter[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  data: ICharacter[];
 }

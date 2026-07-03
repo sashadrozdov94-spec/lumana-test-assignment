@@ -27,13 +27,13 @@ import { ICharacter } from '../../interfaces/character.interface';
   styleUrls: ['./search-bar.component.scss']
 })
 export class SearchBarComponent {
-  private store = inject(Store);
+  private readonly store = inject(Store);
+  private readonly destroyRef = inject(DestroyRef);
 
   public searchQuery = this.store.selectSignal(CharacterSelectors.selectSearchQuery);
   public characters = this.store.selectSignal(CharacterSelectors.selectAllCharacters);
   public historySuggestions = this.store.selectSignal(CharacterSelectors.selectHistorySuggestions);
   public isLoading = this.store.selectSignal(CharacterSelectors.selectIsLoading);
-  private destroyRef = inject(DestroyRef);
 
   public searchControl = new FormControl<string | ICharacter>(this.searchQuery() || '');
 
@@ -50,7 +50,7 @@ export class SearchBarComponent {
 
   constructor() {
     this.searchControl.valueChanges.pipe(
-      debounceTime(1000),
+      debounceTime(500),
       distinctUntilChanged(),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe((searchTerm) => {
@@ -65,10 +65,7 @@ export class SearchBarComponent {
     effect(() => {
       const storeQuery = this.searchQuery();
       const controlValue = this.searchControl.value;
-
-      const controlString = typeof controlValue === 'string'
-        ? controlValue
-        : controlValue?.name || '';
+      const controlString = typeof controlValue === 'string' ? controlValue : controlValue?.name || '';
 
       if (storeQuery !== undefined && storeQuery !== controlString) {
         this.searchControl.setValue(storeQuery, { emitEvent: false });

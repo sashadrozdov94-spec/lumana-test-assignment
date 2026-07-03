@@ -6,14 +6,26 @@ export class SharedService implements OnModuleInit, OnModuleDestroy {
   private client: RedisClientType;
 
   async onModuleInit(): Promise<void> {
-    // Connect to Redis container (using localhost for local dev)
+    // Resolve correct internal Docker network hostname dynamically ('lumana-redis')
+    const redisHost = process.env.REDIS_HOST || 'lumana-redis';
+    const defaultRedisUrl = `redis://${redisHost}:6379`;
+
     this.client = createClient({
-      url: 'redis://localhost:6379',
+      url: process.env.REDIS_URL || defaultRedisUrl,
     });
 
     try {
       await this.client.connect();
     } catch (error) {
+      // Fallback to localhost if running outside Docker in a hybrid development environment
+      try {
+        this.client = createClient({
+          url: 'redis://localhost:6379',
+        });
+        await this.client.connect();
+      } catch (fallbackError) {
+        // Suppress fallback connection errors per criteria
+      }
     }
   }
 

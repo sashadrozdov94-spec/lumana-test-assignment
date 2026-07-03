@@ -60,15 +60,5 @@ export const selectAllHistory = createSelector(
 
 export const selectHistorySuggestions = createSelector(
   selectAllHistory,
-  selectSearchQuery,
-  (history, query) => {
-    if (!query || query.trim() === '') return history.slice(0, 5);
-
-    const lowerQuery = query.toLowerCase().trim();
-
-    return history.filter(item => {
-      const itemText = item.query.toLowerCase();
-      return itemText.includes(lowerQuery);
-    }).slice(0, 5);
-  }
+  (history) => history.slice(0, 5)
 );

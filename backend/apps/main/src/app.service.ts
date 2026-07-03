@@ -1,97 +1,122 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Character } from '@app/shared';
+import { Model, Document } from 'mongoose';
 import axios from 'axios';
-import * as JSONStream from 'JSONStream';
-import { pipeline } from 'stream/promises';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { SharedService } from '@app/shared';
 
-export interface PaginatedResult<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+export interface ICharacter extends Document {
+  id: number;
+  name: string;
+  status: string;
+  species: string;
+  type: string;
+  heading: string;
+  gender: string;
+  origin: { name: string; url: string; };
+  location: { name: string; url: string; };
+  image: string;
+  episode: string[];
+  url: string;
+  created: string;
+}
+
+export interface IApiResponse {
+  info: { count: number; pages: number; next: string | null; prev: string | null; };
+  results: ICharacter[];
 }
 
 @Injectable()
 export class AppService implements OnModuleInit {
-  private readonly API_URL = 'https://rickandmortyapi.com/api/character';
-  private readonly BATCH_SIZE = 50;
+  private readonly filePath = path.join(process.cwd(), 'characters-data.json');
 
   constructor(
-    @InjectModel(Character.name) private readonly characterModel: Model<Character>,
+    @InjectModel('Character') private readonly characterModel: Model<ICharacter>,
+    private readonly sharedService: SharedService
   ) {}
 
   async onModuleInit(): Promise<void> {
     const count = await this.characterModel.countDocuments();
-    
     if (count === 0) {
-      await this.downloadAndStreamData();
+      await this.fetchAndSaveToFile();
+      await this.parseAndInsertToMongo();
     }
   }
 
-  private async downloadAndStreamData(): Promise<void> {
-    try {
-      const { data } = await axios.get(this.API_URL, { responseType: 'stream' });
-      const jsonStream = JSONStream.parse('results.*');
-      
-      let batch: Partial<Character>[] = [];
-
-      jsonStream.on('data', async (characterData: Partial<Character>) => {
-        batch.push(characterData);
-
-        if (batch.length >= this.BATCH_SIZE) {
-          jsonStream.pause();
-          await this.saveBatchToDB(batch);
-          batch = [];
-          jsonStream.resume();
+  private async fetchAndSaveToFile(): Promise<void> {
+    let nextUrl: string | null = 'https://rickandmortyapi.com/api/character';
+    const allCharacters: any[] = [];
+    
+    while (nextUrl) {
+      try {
+        const response = await axios.get<IApiResponse>(nextUrl);
+        const { info, results } = response.data;
+        allCharacters.push(...results);
+        nextUrl = info.next;
+        if (nextUrl) {
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
-      });
-
-      jsonStream.on('end', async () => {
-        if (batch.length > 0) {
-          await this.saveBatchToDB(batch);
-        }
-      });
-
-      await pipeline(data, jsonStream);
-    } catch (error) {
-      // Intentionally suppressed logging per strict requirements
-    }
-  }
-
-  private async saveBatchToDB(batch: Partial<Character>[]): Promise<void> {
-    try {
-      await this.characterModel.insertMany(batch, { ordered: false });
-    } catch (error: any) {
-      // Ignore E11000 duplicate key errors
-      if (error.code !== 11000) {
-        throw error;
+      } catch (error) {
+        break;
       }
     }
+    await fs.writeFile(this.filePath, JSON.stringify(allCharacters), 'utf8');
   }
 
-  /**
-   * Retrieves a paginated list of characters.
-   */
-  async getCharacters(page: number, limit: number, search?: string): Promise<PaginatedResult<Character>> {
+  private async parseAndInsertToMongo(): Promise<void> {
+    try {
+      const fileContent = await fs.readFile(this.filePath, 'utf8');
+      const characters = JSON.parse(fileContent);
+      await this.characterModel.insertMany(characters);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async findAll(page: number, limit: number, name?: string) {
+    const filter = name ? { $text: { $search: name } } : {};
     const skip = (page - 1) * limit;
-    
-    // Utilize MongoDB $text search if search query is provided
-    const query = search ? { $text: { $search: search } } : {};
 
     const [data, total] = await Promise.all([
-      this.characterModel.find(query).skip(skip).limit(limit).exec(),
-      this.characterModel.countDocuments(query),
+      this.characterModel.find(filter).skip(skip).limit(limit).exec(),
+      this.characterModel.countDocuments(filter)
     ]);
 
+    if (this.sharedService['client']?.isOpen) {
+      // 1. Isolated TimeSeries execution. Failure here won't crash the event chain.
+      try {
+        await this.sharedService['client'].sendCommand([
+          'TS.ADD', 'api:requests', '*', '1'
+        ]);
+      } catch (tsError) {
+        // Suppressed: handles case where RedisTimeSeries module is missing
+      }
+
+      // 2. Isolated Microservice Event Publication.
+      try {
+        const logPayload = {
+          type: 'SEARCH',
+          message: `User executed search query with filter: ${name || 'none'}`,
+          meta: { timestamp: Date.now() }
+        };
+
+        const nestJsMessageEnvelope = {
+          pattern: 'api_request_event',
+          data: logPayload
+        };
+
+        await this.sharedService['client'].publish('api_request_event', JSON.stringify(nestJsMessageEnvelope));
+      } catch (pubSubError) {
+      }
+    }
+
     return {
-      data,
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      data
     };
   }
 }

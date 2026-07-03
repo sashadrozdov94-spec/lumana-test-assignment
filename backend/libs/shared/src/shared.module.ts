@@ -3,6 +3,6 @@ import { SharedService } from './shared.service';
 
 @Module({
   providers: [SharedService],
-  exports: [SharedService],
+  exports: [SharedService], 
 })
 export class SharedModule {}

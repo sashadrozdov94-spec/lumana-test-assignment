@@ -1,3 +1,5 @@
 export const environment = {
-  baseUrl:  "https://rickandmortyapi.com/api",
+  production: false,
+  apiUrl: 'http://localhost:3000',
+  reportUrl: 'http://localhost:3001'
 };

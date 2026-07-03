@@ -3,20 +3,53 @@ version: '3.8'
 services:
   mongodb:
     image: mongo:latest
-    container_name: lumana_mongo
+    container_name: lumana-mongodb
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
-    restart: always
+      - mongo-data:/data/db
 
   redis:
-    image: redis/redis-stack:latest
-    container_name: lumana_redis
+    image: redis/redis-stack:latest 
+    container_name: lumana-redis
     ports:
       - "6379:6379"
       - "8001:8001"
-    restart: always
+
+  service-a:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - APP_NAME=main
+    container_name: lumana-service-a
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/lumana
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+    depends_on:
+      - mongodb
+      - redis
+
+  service-b:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - APP_NAME=service-b
+    container_name: lumana-service-b
+    ports:
+      - "3001:3001"
+      - "50051:50051"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/lumana
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+    depends_on:
+      - mongodb
+      - redis
 
 volumes:
-  mongo_data:
+  mongo-data:

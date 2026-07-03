@@ -1,7 +1,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { createEntityAdapter, EntityAdapter, EntityState } from '@ngrx/entity';
 import { ICharacter, ISearchHistory } from '../interfaces/character.interface';
-import { IApiPageInfo } from '../interfaces/pagination.interface';
+import { IApiPageInfo, IPaginatedResponse } from '../interfaces/pagination.interface';
 import { ChangedCanvasCharacter } from '../interfaces/canvas.interface';
 import * as CharacterActions from './characters.actions';
 
@@ -44,17 +44,15 @@ export const initialState: CharacterState = appAdapter.getInitialState({
 export const characterReducer = createReducer(
   initialState,
 
-  on(CharacterActions.setSearch, (state, { query }) => {
-    return appAdapter.removeAll({
-      ...state,
-      searchQuery: query,
-      searchId: null,
-      currentPage: 1,
-      pagination: null,
-      isLoading: true,
-      error: null
-    });
-  }),
+  on(CharacterActions.setSearch, (state, { query }) => appAdapter.removeAll({
+    ...state,
+    searchQuery: query,
+    searchId: null,
+    currentPage: 1,
+    pagination: null,
+    isLoading: true,
+    error: null
+  })),
 
   on(CharacterActions.loadNextPage, (state) => ({
     ...state,
@@ -63,15 +61,16 @@ export const characterReducer = createReducer(
   })),
 
   on(CharacterActions.loadCharactersSuccess, (state, { response }) => {
-    let newChars: ICharacter[] = [];
-    let newInfo: IApiPageInfo | null = null;
+    const paginatedRes = response as IPaginatedResponse;
+    const newChars = paginatedRes?.data || [];
 
-    if (response && 'results' in response) {
-      newChars = response.results;
-      if ('info' in response) {
-        newInfo = response.info;
-      }
-    }
+    const hasMore = newChars.length > 0;
+    const newInfo = {
+      count: paginatedRes?.total || state.pagination?.count || 0,
+      pages: hasMore ? state.currentPage + 1 : state.currentPage,
+      next: null,
+      prev: null
+    };
 
     return appAdapter.addMany(newChars, {
       ...state,

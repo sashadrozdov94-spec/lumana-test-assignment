@@ -11,6 +11,7 @@ export class Figure {
   public rotation: number;
   public fillColor: string;
 
+  // Initializes the figure with its points, rotation, and color
   constructor(
     vertices: Vector[],
     rotation: number = 0,
@@ -21,6 +22,7 @@ export class Figure {
     this.fillColor = fillColor;
   }
 
+  // Calculates the Axis-Aligned Bounding Box (AABB) and the center pivot point
   private getGeometricProperties() {
     const xCoords = this.vertices.map((v) => v.x);
     const yCoords = this.vertices.map((v) => v.y);
@@ -40,6 +42,7 @@ export class Figure {
     };
   }
 
+  // Applies a 2D rotation matrix to the vertices relative to the center
   private getRotatedPoints(points: Vector[]): Vector[] {
     const { centerX, centerY } = this.getGeometricProperties();
     const cosAngle = Math.cos(this.rotation);
@@ -56,6 +59,7 @@ export class Figure {
     });
   }
 
+  // Converts an array of vectors into a native Canvas Path2D object
   private createPathFromPoints(points: Vector[]): Path2D {
     const path = new Path2D();
     if (points.length === 0) {
@@ -69,6 +73,7 @@ export class Figure {
     return path;
   }
 
+  // Renders the figure (fill and stroke) onto the canvas context
   public render(ctx: CanvasRenderingContext2D): void {
     const rotatedVertices = this.getRotatedPoints(this.vertices);
     const shapePath = this.createPathFromPoints(rotatedVertices);
@@ -81,6 +86,7 @@ export class Figure {
     ctx.stroke(shapePath);
   }
 
+  // Shifts the figure's position by adding the delta to each vertex
   public translate(deltaX: number, deltaY: number): void {
     this.vertices = this.vertices.map(({ x, y }) => ({
       x: x + deltaX,
@@ -88,6 +94,7 @@ export class Figure {
     }));
   }
 
+  // Hit-testing: Returns true if the given coordinates fall inside the figure
   public isPointerOver(
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -98,6 +105,7 @@ export class Figure {
     return ctx.isPointInPath(shapePath, x, y);
   }
 
+  // Draws the selection bounding box and the rotation handle
   public drawSelectionFrame(ctx: CanvasRenderingContext2D): void {
     const { minX, maxX, minY, maxY } = this.getGeometricProperties();
     const boundingBoxCorners = [
@@ -128,6 +136,7 @@ export class Figure {
     ctx.fill(rotationHandlePath);
   }
 
+  // Hit-testing: Returns true if the pointer is over the rotation handle
   public isPointerNearRotationHandle(
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -142,6 +151,7 @@ export class Figure {
     return ctx.isPointInPath(handlePath, x, y);
   }
 
+  // Calculates the rotation angle based on mouse drag position
   public getAngleForRotation(
     pointerX: number,
     pointerY: number

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package report;
+
+service ReportService {
+  rpc GenerateReport (Empty) returns (ReportResponse) {}
+}
+
+message Empty {}
+
+message ReportResponse {
+  bytes pdfBuffer = 1;
+}
