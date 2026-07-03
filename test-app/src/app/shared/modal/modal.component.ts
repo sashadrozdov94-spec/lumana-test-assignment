@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, OnInit, OnDestroy, signal, viewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, OnInit, OnDestroy, signal, viewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
@@ -24,6 +24,7 @@ export class ModalComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly store = inject(Store);
   private readonly destroyRef = inject(DestroyRef);
   private readonly canvasService = inject(CanvasService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly DESIGN_DIMENSIONS = { width: 1200, height: 850 };
 
   public activeCharacter = this.store.selectSignal(CharacterSelectors.selectSelectedCharacter);
@@ -42,6 +43,13 @@ export class ModalComponent implements OnInit, AfterViewInit, OnDestroy {
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(color => {
             if (color) this.canvasService.setColor(color);
+        });
+
+    this.canvasService.figureSelected$
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(color => {
+            this.colorControl.setValue(color, { emitEvent: false });
+            this.cdr.markForCheck();
         });
   }
 

@@ -75,7 +75,7 @@ export class AppService implements OnModuleInit {
   }
 
   async findAll(page: number, limit: number, name?: string) {
-    const filter = name ? { $text: { $search: name } } : {};
+    const filter = name ? { name: { $regex: name, $options: 'i' } } : {};
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([

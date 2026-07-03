@@ -19,6 +19,8 @@ export class CanvasService {
   private readonly CLOSING_RADIUS = 15;
   private destroy$ = new Subject<void>();
 
+  public readonly figureSelected$ = new Subject<string>();
+
   public setCanvasElement(canvasRef: ElementRef<HTMLCanvasElement>): void {
     this.canvasEl = canvasRef.nativeElement;
     this.ctx = this.canvasEl.getContext('2d') as CanvasRenderingContext2D;
@@ -41,6 +43,10 @@ export class CanvasService {
 
   public setColor(color: string): void {
     this.currentColor = color;
+    if (this.activeFigure) {
+      this.activeFigure.fillColor = color;
+      this.redrawCanvas();
+    }
   }
 
   public loadFigures(canvasData: ChangedCanvasCharacter[], charId: number): void {
@@ -164,12 +170,14 @@ export class CanvasService {
     const rotateTarget = this.figures.find(f => f.isPointerNearRotationHandle(this.ctx, pos.x, pos.y));
     if (rotateTarget) {
       this.activeFigure = rotateTarget;
+      this.figureSelected$.next(rotateTarget.fillColor);
       return 'rotate';
     }
 
     const moveTarget = this.figures.find(f => f.isPointerOver(this.ctx, pos.x, pos.y));
     if (moveTarget) {
       this.activeFigure = moveTarget;
+      this.figureSelected$.next(moveTarget.fillColor);
       return 'move';
     }
 

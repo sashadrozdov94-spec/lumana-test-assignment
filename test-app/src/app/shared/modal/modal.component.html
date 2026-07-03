@@ -2,19 +2,18 @@
   class="fixed inset-0 z-50 flex items-center justify-center transition-opacity"
   (mousedown)="close()"
 >
-
   <div
     class="relative bg-white rounded-2xl shadow-2xl flex overflow-hidden border border-gray-800"
     (mousedown)="$event.stopPropagation()"
     [style.transform]="'scale(' + scaleFactor() + ')'"
-    style="width: 1200px; height: 850px; transition: transform 0.1s linear;"
+    style="width: 1200px; height: 850px; transition: transform 0.1s linear"
   >
-
-    <div class="w-72 bg-gray-50 p-6 flex flex-col gap-8 border-r border-gray-200 shrink-0 relative z-10">
-
+    <div
+      class="w-72 bg-gray-50 p-6 flex flex-col gap-8 border-r border-gray-200 shrink-0 relative z-10"
+    >
       <div class="space-y-1">
         <h3 class="text-2xl font-bold text-gray-900 tracking-tight">Editor</h3>
-        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider">Simpsons Canvas</p>
+        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider">Canvas</p>
       </div>
 
       <div class="space-y-4">
@@ -29,17 +28,27 @@
             <option [value]="colorPalette.blue">Blue</option>
             <option [value]="colorPalette.green">Green</option>
           </select>
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+          <div
+            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700"
+          >
+            <svg
+              class="fill-current h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+            >
+              <path
+                d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"
+              />
+            </svg>
           </div>
         </div>
 
         <div class="flex items-center gap-2 mt-2">
-            <span class="text-xs text-gray-500">Selected:</span>
-            <div
-                class="w-6 h-6 rounded-full border border-gray-200 shadow-sm"
-                [style.backgroundColor]="'rgb(' + colorControl.value + ')'"
-            ></div>
+          <span class="text-xs text-gray-500">Selected:</span>
+          <div
+            class="w-6 h-6 rounded-full border border-gray-200 shadow-sm"
+            [style.backgroundColor]="'rgb(' + colorControl.value + ')'"
+          ></div>
         </div>
       </div>
 
@@ -62,23 +71,25 @@
       </div>
 
       <div class="text-center pt-2">
-        <button (click)="close()" class="text-xs text-gray-400 hover:text-gray-600 underline decoration-dotted">
-            Discard changes
+        <button
+          (click)="close()"
+          class="text-xs text-gray-400 hover:text-gray-600 underline decoration-dotted"
+        >
+          Discard changes
         </button>
       </div>
     </div>
 
     <div class="flex-grow bg-gray-100/50 relative overflow-hidden flex items-center justify-center">
-      <div class="absolute inset-0 opacity-[0.03]"
-           style="background-image: radial-gradient(#000 1px, transparent 1px); background-size: 20px 20px;">
-      </div>
+      <div
+        class="absolute inset-0 opacity-[0.03]"
+        style="
+          background-image: radial-gradient(#000 1px, transparent 1px);
+          background-size: 20px 20px;
+        "
+      ></div>
 
-      <canvas
-        #canvas
-        class="relative z-10 shadow-2xl bg-white"
-        style="width: 70%;"
-      ></canvas>
+      <canvas #canvas class="relative z-10 shadow-2xl bg-white" style="width: 70%"></canvas>
     </div>
-
   </div>
 </div>
