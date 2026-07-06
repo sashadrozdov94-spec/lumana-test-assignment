@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SystemLog, SharedService, LogPayload, RedisTsItem } from '@app/shared';
 import PDFDocument = require('pdfkit');
-import { LogFilter, LogRepository } from '../log.repository';
-
-
+import { LogRepository, LogFilter } from '../log.repository';
 
 @Injectable()
 export class ServiceBService {
+  private readonly logger = new Logger(ServiceBService.name);
+
   constructor(
     private readonly logRepository: LogRepository,
     private readonly sharedService: SharedService,
@@ -15,7 +15,9 @@ export class ServiceBService {
   async handleIncomingEvent(payload: LogPayload): Promise<void> {
     try {
       await this.logRepository.createLog(payload);
-    } catch (error) {}
+    } catch (error: any) {
+      this.logger.error('Failed to save incoming log event to database', error.stack);
+    }
   }
 
   async getLogs(type?: string, startDate?: string, endDate?: string): Promise<SystemLog[]> {
@@ -46,7 +48,9 @@ export class ServiceBService {
             });
           });
         }
-      } catch (e) {}
+      } catch (e: any) {
+        this.logger.warn('Could not fetch metrics from Redis TimeSeries, falling back to MongoDB logs', e.stack);
+      }
     }
 
     if (rawMetrics.length === 0) {
@@ -61,7 +65,9 @@ export class ServiceBService {
             });
           });
         }
-      } catch (mongoError) {}
+      } catch (mongoError: any) {
+        this.logger.error('Failed to retrieve backup logs from MongoDB', mongoError.stack);
+      }
     }
 
     const metrics: RedisTsItem[] = [];

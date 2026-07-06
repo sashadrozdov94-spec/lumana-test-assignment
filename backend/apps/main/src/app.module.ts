@@ -6,6 +6,8 @@ import { AppService } from './app.service';
 import { Character, CharacterSchema, SharedModule } from '@app/shared';
 import { ConfigModule } from '@nestjs/config';
 import { CharacterRepository } from './character.repository';
+import { TerminusModule } from '@nestjs/terminus';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -17,6 +19,7 @@ import { CharacterRepository } from './character.repository';
     }),
     MongooseModule.forFeature([{ name: Character.name, schema: CharacterSchema }]),
     SharedModule,
+    TerminusModule,
     ClientsModule.register([
       {
         name: 'SERVICE_B_CLIENT',
@@ -28,7 +31,7 @@ import { CharacterRepository } from './character.repository';
       },
     ]),
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService,CharacterRepository],
 })
 export class AppModule {}

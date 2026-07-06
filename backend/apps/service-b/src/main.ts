@@ -2,33 +2,39 @@ import { NestFactory } from '@nestjs/core';
 import { Transport } from '@nestjs/microservices';
 import { ServiceBModule } from './service-b.module';
 import { join } from 'path';
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(ServiceBModule);
+  
+  const configService = app.get(ConfigService);
 
-  // 1. Redis Pub/Sub Transporter
+  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+
   app.connectMicroservice({
     transport: Transport.REDIS,
     options: {
-      host: process.env.REDIS_HOST || 'localhost', 
-      port: 6379,
+      host: configService.get<string>('REDIS_HOST') || 'localhost', 
+      port: configService.get<number>('REDIS_PORT') || 6379,
     },
   });
 
-  // 2. gRPC Transporter (BONUS)
   app.connectMicroservice({
     transport: Transport.GRPC,
     options: {
       package: 'report',
       protoPath: join(process.cwd(), 'report.proto'), 
-      url: process.env.GRPC_URL || '0.0.0.0:50051', 
+      url: configService.get<string>('GRPC_URL') || '0.0.0.0:50051', 
     },
   });
 
   app.enableCors();
 
   await app.startAllMicroservices();
-  await app.listen(3001);
+  
+  const port = configService.get<number>('PORT') || 3001;
+  await app.listen(port);
 }
 
 bootstrap();

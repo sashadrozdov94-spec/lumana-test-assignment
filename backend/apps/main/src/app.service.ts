@@ -1,17 +1,15 @@
 import { ConfigService } from '@nestjs/config';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import axios from 'axios';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { IApiResponse, ICharacter, SharedService } from '@app/shared';
-import { Document } from 'mongoose';
 import { CharacterRepository, CharacterFilter } from './character.repository';
-
-
 
 @Injectable()
 export class AppService implements OnModuleInit {
   private readonly filePath = path.join(process.cwd(), 'characters-data.json');
+  private readonly logger = new Logger(AppService.name);
 
   constructor(
     private readonly characterRepository: CharacterRepository,
@@ -40,7 +38,8 @@ export class AppService implements OnModuleInit {
         if (nextUrl) {
           await new Promise(resolve => setTimeout(resolve, 300));
         }
-      } catch (error) {
+      } catch (error: any) {
+        this.logger.error('Failed to fetch characters from external API', error.stack);
         break;
       }
     }
@@ -52,7 +51,9 @@ export class AppService implements OnModuleInit {
       const fileContent = await fs.readFile(this.filePath, 'utf8');
       const characters: ICharacter[] = JSON.parse(fileContent);
       await this.characterRepository.insertBatch(characters);
-    } catch (error) {
+      this.logger.log('Successfully seeded MongoDB with character data');
+    } catch (error: any) {
+      this.logger.error('Failed to parse and insert data to MongoDB', error.stack);
       throw error;
     }
   }
@@ -71,7 +72,9 @@ export class AppService implements OnModuleInit {
         await this.sharedService['client'].sendCommand([
           'TS.ADD', 'api:requests', '*', '1'
         ]);
-      } catch (tsError) {}
+      } catch (tsError: any) {
+        this.logger.error('Failed to add metric to Redis TimeSeries', tsError.stack);
+      }
 
       try {
         const logPayload = {
@@ -86,7 +89,9 @@ export class AppService implements OnModuleInit {
         };
 
         await this.sharedService['client'].publish('api_request_event', JSON.stringify(nestJsMessageEnvelope));
-      } catch (pubSubError) {}
+      } catch (pubSubError: any) {
+        this.logger.error('Failed to publish search event to Redis', pubSubError.stack);
+      }
     }
 
     return {
