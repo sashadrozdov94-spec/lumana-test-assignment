@@ -4,6 +4,7 @@ import { ServiceBModule } from './service-b.module';
 import { join } from 'path';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(ServiceBModule);
@@ -30,6 +31,15 @@ async function bootstrap(): Promise<void> {
   });
 
   app.enableCors();
+
+  const config = new DocumentBuilder()
+    .setTitle('Lumana API - Service B (Logs & Reports)')
+    .setDescription('API for viewing system logs and generating PDF reports')
+    .setVersion('1.0')
+    .build();
+    
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
 
   await app.startAllMicroservices();
   

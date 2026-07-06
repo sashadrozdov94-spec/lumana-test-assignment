@@ -26,7 +26,7 @@ export class AppService implements OnModuleInit {
   }
 
   private async fetchAndSaveToFile(): Promise<void> {
-    let nextUrl: string | null = this.configService.get<string>('RICK_AND_MORTY_API_URL');
+    let nextUrl: string | null = this.configService.get<string>('RICK_AND_MORTY_API_URL') || null;
     const allCharacters: ICharacter[] = [];
     
     while (nextUrl) {
@@ -38,8 +38,9 @@ export class AppService implements OnModuleInit {
         if (nextUrl) {
           await new Promise(resolve => setTimeout(resolve, 300));
         }
-      } catch (error: any) {
-        this.logger.error('Failed to fetch characters from external API', error.stack);
+      } catch (error: unknown) {
+        const trace = error instanceof Error ? error.stack : String(error);
+        this.logger.error('Failed to fetch characters from external API', trace);
         break;
       }
     }
@@ -52,8 +53,9 @@ export class AppService implements OnModuleInit {
       const characters: ICharacter[] = JSON.parse(fileContent);
       await this.characterRepository.insertBatch(characters);
       this.logger.log('Successfully seeded MongoDB with character data');
-    } catch (error: any) {
-      this.logger.error('Failed to parse and insert data to MongoDB', error.stack);
+    } catch (error: unknown) {
+      const trace = error instanceof Error ? error.stack : String(error);
+      this.logger.error('Failed to parse and insert data to MongoDB', trace);
       throw error;
     }
   }
@@ -67,30 +69,22 @@ export class AppService implements OnModuleInit {
       this.characterRepository.countWithFilter(filter)
     ]);
 
-    if (this.sharedService['client']?.isOpen) {
-      try {
-        await this.sharedService['client'].sendCommand([
-          'TS.ADD', 'api:requests', '*', '1'
-        ]);
-      } catch (tsError: any) {
-        this.logger.error('Failed to add metric to Redis TimeSeries', tsError.stack);
-      }
+    await this.sharedService.addTimeSeriesEntry('api:requests', 1);
 
+    if (this.sharedService['client']?.isOpen) {
       try {
         const logPayload = {
           type: 'SEARCH',
           message: `User executed search query with filter: ${name || 'none'}`,
-          meta: { timestamp: Date.now() }
+          timestamp: Date.now(),
+          count: total
         };
-
-        const nestJsMessageEnvelope = {
-          pattern: 'api_request_event',
-          data: logPayload
-        };
-
+        
+        const nestJsMessageEnvelope = { pattern: 'api_request_event', data: logPayload };
         await this.sharedService['client'].publish('api_request_event', JSON.stringify(nestJsMessageEnvelope));
-      } catch (pubSubError: any) {
-        this.logger.error('Failed to publish search event to Redis', pubSubError.stack);
+      } catch (pubSubError: unknown) {
+        const trace = pubSubError instanceof Error ? pubSubError.stack : String(pubSubError);
+        this.logger.error('Failed to publish search event to Redis', trace);
       }
     }
 

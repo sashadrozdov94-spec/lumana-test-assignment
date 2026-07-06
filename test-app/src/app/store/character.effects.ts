@@ -2,7 +2,7 @@ import { inject, Injectable, DestroyRef } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
-import { map, catchError, switchMap, withLatestFrom, tap } from 'rxjs/operators';
+import { map, catchError, switchMap, withLatestFrom, tap, delay } from 'rxjs/operators';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as CharacterActions from './characters.actions';
 import * as CharacterSelectors from './character.selector';
@@ -37,7 +37,7 @@ export class CharacterEffects {
         if (this.responseCache.has(cacheKey)) {
           const cachedResponse = this.responseCache.get(cacheKey);
           if (cachedResponse) {
-            return of(CharacterActions.loadCharactersSuccess({ response: cachedResponse }));
+            return of(CharacterActions.loadCharactersSuccess({ response: cachedResponse })).pipe(delay(10));
           }
         }
 
