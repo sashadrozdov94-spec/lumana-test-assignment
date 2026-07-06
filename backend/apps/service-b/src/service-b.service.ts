@@ -1,42 +1,32 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { SystemLog, SharedService } from '@app/shared';
+import { SystemLog, SharedService, LogPayload, RedisTsItem } from '@app/shared';
 import PDFDocument = require('pdfkit');
+import { LogFilter, LogRepository } from '../log.repository';
 
-interface LogPayload {
-  type: string;
-  message: string;
-  meta?: Record<string, unknown>;
-}
 
-interface RedisTsItem {
-  timestamp: number;
-  value: number;
-}
 
 @Injectable()
 export class ServiceBService {
   constructor(
-    @InjectModel(SystemLog.name) private readonly logModel: Model<SystemLog>,
+    private readonly logRepository: LogRepository,
     private readonly sharedService: SharedService,
   ) {}
 
   async handleIncomingEvent(payload: LogPayload): Promise<void> {
     try {
-      await this.logModel.create(payload);
+      await this.logRepository.createLog(payload);
     } catch (error) {}
   }
 
   async getLogs(type?: string, startDate?: string, endDate?: string): Promise<SystemLog[]> {
-    const query: { type?: string; createdAt?: { $gte?: Date; $lte?: Date }; } = {};
+    const query: LogFilter = {};
     if (type) query.type = type;
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
-    return this.logModel.find(query).sort({ createdAt: -1 }).exec();
+    return this.logRepository.findFilteredLogs(query);
   }
 
   async generatePdfReport(): Promise<Buffer> {
@@ -61,11 +51,12 @@ export class ServiceBService {
 
     if (rawMetrics.length === 0) {
       try {
-        const backupLogs = await this.logModel.find({ type: 'SEARCH' }).sort({ createdAt: -1 }).limit(100).exec();
+        const backupLogs = await this.logRepository.findRecentSearchLogs(100);
         if (backupLogs && backupLogs.length > 0) {
           backupLogs.forEach(log => {
+            const logDoc = log as SystemLog & { createdAt?: Date };
             rawMetrics.push({
-              timestamp: new Date((log as any).createdAt || Date.now()).getTime(),
+              timestamp: logDoc.createdAt ? new Date(logDoc.createdAt).getTime() : Date.now(),
               value: 1
             });
           });

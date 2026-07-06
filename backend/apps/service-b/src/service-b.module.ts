@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ServiceBController } from './service-b.controller';
 import { ServiceBService } from './service-b.service';
 import { SystemLog, SystemLogSchema, SharedModule } from '@app/shared';
+import { LogRepository } from '../log.repository';
 
 @Module({
   imports: [
@@ -11,6 +12,6 @@ import { SystemLog, SystemLogSchema, SharedModule } from '@app/shared';
     SharedModule,
   ],
   controllers: [ServiceBController],
-  providers: [ServiceBService],
+  providers: [ServiceBService,LogRepository],
 })
 export class ServiceBModule {}
