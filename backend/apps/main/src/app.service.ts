@@ -75,8 +75,9 @@ export class AppService implements OnModuleInit {
       try {
         const logPayload = {
           type: 'SEARCH',
+          searchQuery: name || null,
           message: `User executed search query with filter: ${name || 'none'}`,
-          timestamp: Date.now(),
+          timestamp: Date.now().toString(),
           count: total
         };
         

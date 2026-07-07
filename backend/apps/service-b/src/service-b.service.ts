@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SystemLog, SharedService, LogPayload, RedisTsItem } from '@app/shared';
 import PDFDocument = require('pdfkit');
-import { LogRepository, LogFilter } from '../log.repository';
+import { LogRepository, LogFilter } from './log.repository';
 
 @Injectable()
 export class ServiceBService {
